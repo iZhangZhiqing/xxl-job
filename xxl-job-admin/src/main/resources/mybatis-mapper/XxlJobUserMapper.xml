@@ -20,23 +20,24 @@
 	</sql>
 
 	<select id="pageList" parameterType="java.util.HashMap" resultMap="XxlJobUser">
-		SELECT <include refid="Base_Column_List" />
-		FROM xxl_job_user AS t
-		<trim prefix="WHERE" prefixOverrides="AND | OR" >
-			<if test="username != null and username != ''">
-				AND t.username like CONCAT(CONCAT('%', #{username}), '%')
-			</if>
-			<if test="role gt -1">
-				AND t.role = #{role}
-			</if>
-		</trim>
-		ORDER BY username ASC
-		LIMIT #{offset}, #{pagesize}
+		SELECT * FROM ( SELECT TMP_PAGE.*, ROWNUM ROW_ID FROM (
+			SELECT <include refid="Base_Column_List" />
+			FROM xxl_job_user t
+			<trim prefix="WHERE" prefixOverrides="AND | OR" >
+				<if test="username != null and username != ''">
+					AND t.username like CONCAT(CONCAT('%', #{username}), '%')
+				</if>
+				<if test="role gt -1">
+					AND t.role = #{role}
+				</if>
+			</trim>
+			ORDER BY username ASC
+		) TMP_PAGE WHERE ROWNUM <![CDATA[ <= ]]> #{offset}+#{pagesize} ) WHERE ROW_ID <![CDATA[ > ]]> #{offset}
 	</select>
 
 	<select id="pageListCount" parameterType="java.util.HashMap" resultType="int">
 		SELECT count(1)
-		FROM xxl_job_user AS t
+		FROM xxl_job_user t
 		<trim prefix="WHERE" prefixOverrides="AND | OR" >
 			<if test="username != null and username != ''">
 				AND t.username like CONCAT(CONCAT('%', #{username}), '%')
@@ -49,22 +50,29 @@
 
 	<select id="loadByUserName" parameterType="java.util.HashMap" resultMap="XxlJobUser">
 		SELECT <include refid="Base_Column_List" />
-		FROM xxl_job_user AS t
+		FROM xxl_job_user t
 		WHERE t.username = #{username}
 	</select>
 
+	<sql id='XXL_JOB_USER_ID'>XXL_JOB_USER_ID.NEXTVAL</sql>
+
 	<insert id="save" parameterType="com.xxl.job.admin.core.model.XxlJobUser" useGeneratedKeys="true" keyProperty="id" >
+		<selectKey keyProperty="id" resultType="int" order="BEFORE">
+			select <include refid="XXL_JOB_USER_ID" /> from dual
+		</selectKey>
 		INSERT INTO xxl_job_user (
+			id,
 			username,
 			password,
 			role,
 			permission
 		) VALUES (
+			#{id},
 			#{username},
 			#{password},
 			#{role},
 			#{permission}
-		);
+		)
 	</insert>
 
 	<update id="update" parameterType="com.xxl.job.admin.core.model.XxlJobUser" >
